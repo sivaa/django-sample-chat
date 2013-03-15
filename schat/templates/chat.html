@@ -1,0 +1,137 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<title>Log in</title>
+<meta http-equiv="Content-type" content="text/html; charset=utf-8" />
+
+<script type="text/javascript" src="http://code.jquery.com/jquery-1.9.1.js" ></script>
+<script type="text/javascript" src="http://code.jquery.com/ui/1.10.1/jquery-ui.js" ></script>
+<script type="text/javascript" src="/static/jquery.ui.chatbox.js" ></script>
+
+<link rel="stylesheet" type="text/css" href="http://code.jquery.com/ui/1.10.1/themes/base/jquery-ui.css" />
+<link rel="stylesheet" type="text/css" href="/static/jquery.ui.chatbox.css" />
+
+<style>
+body{
+	font-family:Arial,Helvetica,sans-serif;
+	font-size: 12px;
+}
+</style>
+
+<script type="text/javascript">
+
+	var offset_val = 0;
+
+	$(document).ready(function(){
+   	  
+    	    $.ajaxSetup({
+    		    cache: false,
+    	        timeout: 1000*60//set a global ajax timeout of a minute
+    	     });
+    	    
+    	    doPoll(); // do the first poll
+          
+	});
+    
+    function doPoll(){
+        $.get('/get/', function(data) {
+            if(data.indexOf('ACTIVE:') != -1 ) {            	
+            	users_list = data.split('ACTIVE:')[1];          	
+            	build_chat_links(users_list);
+            } else {
+            	username = data.split(':')[0];
+            	message = data.split(':')[1];
+                
+            	update_chat_message(username, message)
+            }            
+            
+            setTimeout(doPoll,5000);
+        });
+    }
+    
+function update_chat_message(username, message) {
+	openChatBox(username, message, true);
+}    
+    
+    
+function build_chat_links(users_list) {
+	
+	var users = users_list.split(',');	
+	var html_str = "";
+	
+	for(var i = 0; i < users.length; i++ ) {	
+		html_str += "<a href=\"javascript:openChatBox('" + users[i] + "', '', false)\">" +  users[i] + " </a> <br>";
+	}
+	
+	$("#online_users").html(html_str);
+}
+    
+
+  
+function server_update(message, to_user) {	
+	$.post(
+			"/post/",
+			{message: message, to_user: to_user},
+			function(responseText){
+				//$("#content").html(responseText);
+			},
+			"html"
+		);	
+}
+
+
+function openChatBox(username, message, auto) {	
+	
+	var div_name = "chat_" + username;
+	var div_id = "#chat_" + username;
+		
+    var offset = $(div_id).chatbox("option", "offset");
+	if( typeof $("#chat_" + username).html() == 'undefined') {
+		$('body').append("<div id = " + div_name + ">" + username + "  </div>");
+		
+		$(div_id).chatbox({id:div_name, 
+            user: username,
+            title : username,
+            offset: offset_val,
+            boxClosed: function(id) {
+            	offset_val -= 250;
+            },
+            messageSent : function(id, user, msg) {
+                $("#log").append(id + " said: " + msg + "<br/>");
+                server_update(msg, id.replace('chat_', ''));
+                $(div_id).chatbox("option", "boxManager").addMsg('me', msg);
+            }});
+		offset_val += 250;
+	} else {
+		if(!auto) {
+        	$(div_id).chatbox("option", "boxManager").toggleBox();
+		}
+	}
+
+	if(auto) {
+        $(div_id).chatbox("option", "boxManager").addMsg(username, message);
+	}
+}
+    </script>
+  </head>
+  <body>
+    <p>It will not work untill necessary scripts and stylesheets are
+    properly loaded, check out the code.</p>  
+    <input type="button"   name="toggle" value="toggle" />
+    	
+    <a href="javascript:openChatBox('two', '', false)"> two </a>
+    
+    <div id="online_users">
+    </div>
+    
+    
+    <div id="chat_div">
+    </div>
+    <hr />
+    <div id="log">
+    </div>
+    
+    Welcome {{ username }}
+    
+  </body>
+</html>
