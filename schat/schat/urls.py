@@ -13,9 +13,13 @@ urlpatterns = patterns('',
     # url(r'^admin/doc/', include('django.contrib.admindocs.urls')),
 
     # Uncomment the next line to enable the admin:
+    (r'^i18n/', include('django.conf.urls.i18n')),
+
     url(r'^admin/', include(admin.site.urls)),
     (r'^login/$', 'mychat.views.login_user'),
     (r'^post/$', 'mychat.views.post'),
     (r'^get/$', 'mychat.views.get'),
+    (r'^vchat_req/$', 'mychat.views.vchat_req'),
+    (r'^vchat_join/$', 'mychat.views.vchat_join'),
 
 )

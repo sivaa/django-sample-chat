@@ -5,133 +5,149 @@
 <meta http-equiv="Content-type" content="text/html; charset=utf-8" />
 
 <script type="text/javascript"
-    src="http://code.jquery.com/jquery-1.9.1.js"></script>
+	src="http://code.jquery.com/jquery-1.9.1.js"></script>
 <script type="text/javascript"
-    src="http://code.jquery.com/ui/1.10.1/jquery-ui.js"></script>
+	src="http://code.jquery.com/ui/1.10.1/jquery-ui.js"></script>
 <script type="text/javascript" src="/static/jquery.ui.chatbox.js"></script>
 
 <link rel="stylesheet" type="text/css"
-    href="http://code.jquery.com/ui/1.10.1/themes/base/jquery-ui.css" />
+	href="http://code.jquery.com/ui/1.10.1/themes/base/jquery-ui.css" />
 <link rel="stylesheet" type="text/css"
-    href="/static/jquery.ui.chatbox.css" />
+	href="/static/jquery.ui.chatbox.css" />
 
 <style>
 body {
-    font-family: Arial, Helvetica, sans-serif;
-    font-size: 12px;
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 12px;
 }
 </style>
 
 <script type="text/javascript">
-    var offset_val = 0;
+	var offset_val = 0;
 
-    $(document).ready(function() {
+	$(document).ready(function() {
 
-        $.ajaxSetup({
-            cache : false,
-            timeout : 1000 * 60
-        //set a global ajax timeout of a minute
-        });
+		$.ajaxSetup({
+			cache : false,
+			timeout : 1000 * 60
+		//set a global ajax timeout of a minute
+		});
 
-        doPoll(); // do the first poll
+		doPoll(); // do the first poll
 
-    });
+	});
 
-    // For every 5 seconds get poll the message for the users. If no messages available, server will return the online users list
-    function doPoll() {
-        $.get('/get/', function(data) {
-            if (data.indexOf('ACTIVE:') != -1) {
-                users_list = data.split('ACTIVE:')[1];
-                build_chat_links(users_list);
-            } else {
-                username = data.split(':')[0];
-                message = data.split(':')[1];
+	// For every 5 seconds get poll the message for the users. If no messages available, server will return the online users list
+	function doPoll() {
+		$.get('/get/', function(data) {
+			if (data.indexOf('ACTIVE:') != -1) {
+				users_list = data.split('ACTIVE:')[1];
+				build_chat_links(users_list);
+			} else {
+				username = data.split(':')[0];
+				message = data.split(':')[1];
+				
+				update_chat_message(username, check_vchat_req(message, username))
+			}
 
-                update_chat_message(username, message)
-            }
+			setTimeout(doPoll, 5000);
+		});
+	}
+	
+	function check_vchat_req(message, username) {
+		if (message.indexOf('VCHAT_REQ->') != -1) {
+			from_user = message.split('VCHAT_REQ->')[1];
+			var div_id = "#chat_" + username;
+			 
+			 
+			 link_html = ' Video Chat Request from: ' + from_user +  '<a target="_blank" href="/vchat_join?from=' + from_user + '">  Accept </a>'
+			 $("#video_chat_requests").html($("#video_chat_requests").html() + '<br>' +  link_html);
+			return "Video Chat request from " + username + " Please Click on the Accept"
+		}
+		return message
+	}
 
-            setTimeout(doPoll, 5000);
-        });
-    }
+	function update_chat_message(username, message) {
+		openChatBox(username, message, true);
+	}
 
-    function update_chat_message(username, message) {
-        openChatBox(username, message, true);
-    }
+	// For the list of Online Users
+	function build_chat_links(users_list) {
 
-    // For the list of Online Users
-    function build_chat_links(users_list) {
+		var users = users_list.split(',');
+		var html_str = "";
 
-        var users = users_list.split(',');
-        var html_str = "";
+		for ( var i = 0; i < users.length; i++) {
+			html_str += "<a href=\"javascript:openChatBox('" + users[i]
+					+ "', '', false)\">" + users[i] + " </a> <br>";
+		}
 
-        for ( var i = 0; i < users.length; i++) {
-            html_str += "<a href=\"javascript:openChatBox('" + users[i]
-                    + "', '', false)\">" + users[i] + " </a> <br>";
-        }
+		$("#online_users").html(html_str);
+	}
 
-        $("#online_users").html(html_str);
-    }
+	// Update the Chat Message to DB
+	function server_update(message, to_user) {
+		$.post("/post/", {
+			message : message,
+			to_user : to_user
+		}, function(responseText) {
+			//$("#content").html(responseText);
+		}, "html");
+	}
 
-    // Update the Chat Message to DB
-    function server_update(message, to_user) {
-        $.post("/post/", {
-            message : message,
-            to_user : to_user
-        }, function(responseText) {
-            //$("#content").html(responseText);
-        }, "html");
-    }
+	// Open the chat box when someone pings (or) Users want to ping others
+	function openChatBox(username, message, auto) {
 
-    // Open the chat box when someone pings (or) Users want to ping others
-    function openChatBox(username, message, auto) {
+		var div_name = "chat_" + username;
+		var div_id = "#chat_" + username;
 
-        var div_name = "chat_" + username;
-        var div_id = "#chat_" + username;
+		var offset = $(div_id).chatbox("option", "offset");
+		if (typeof $("#chat_" + username).html() == 'undefined') {
+			$('body').append(
+					"<div id = " + div_name + ">" + username + "  </div>");
 
-        var offset = $(div_id).chatbox("option", "offset");
-        if (typeof $("#chat_" + username).html() == 'undefined') {
-            $('body').append(
-                    "<div id = " + div_name + ">" + username + "  </div>");
+			$(div_id).chatbox(
+					{
+						id : div_name,
+						user : username,
+						title : '<a  target="_blank" href="/vchat_req?to=' + username + '"> Start Video Chat </a>',
+						offset : offset_val,
+						boxClosed : function(id) {
+							offset_val -= 250;
+						},
+						messageSent : function(id, user, msg) {
+							$("#log").append(id + " said: " + msg + "<br/>");
+							server_update(msg, id.replace('chat_', ''));
+							$(div_id).chatbox("option", "boxManager").addMsg('me', msg);
+						}
+					});
+			offset_val += 250;
+			$(div_id).chatbox("option", "boxManager").addMsg('', '');
+		} else {
+			if (!auto) {
+				$(div_id).chatbox("option", "boxManager").toggleBox();
+			}
+		}
 
-            $(div_id).chatbox(
-                    {
-                        id : div_name,
-                        user : username,
-                        title : username,
-                        offset : offset_val,
-                        boxClosed : function(id) {
-                            offset_val -= 250;
-                        },
-                        messageSent : function(id, user, msg) {
-                            $("#log").append(id + " said: " + msg + "<br/>");
-                            server_update(msg, id.replace('chat_', ''));
-                            $(div_id).chatbox("option", "boxManager").addMsg('me', msg);
-                        }
-                    });
-            offset_val += 250;
-            $(div_id).chatbox("option", "boxManager").addMsg('siva', 'siva');
-        } else {
-            if (!auto) {
-                $(div_id).chatbox("option", "boxManager").toggleBox();
-            }
-        }
-
-        if (auto) {
-            $(div_id).chatbox("option", "boxManager").addMsg(username, message);
-        }
-    }
+		if (auto) {
+			$(div_id).chatbox("option", "boxManager").addMsg(username, message);
+		}
+	}
 </script>
+
+
 </head>
 
 <body>
-    <h1>Welcome {{ username }}</h1>
-    <h3>Users Online</h3>
-    <div id="online_users"></div>
+	<h1>Welcome {{ username }}</h1>
+	<h3>Users Online</h3>
+	<div id="online_users"></div>
+	<div id="video_chat_requests"></div>
 
 
-    <div id="chat_div"></div>
-    <hr />
-    <div id="log"></div>
+	<div id="chat_div"></div>
+	<hr />
+	<div id="log"></div>
 
 
 

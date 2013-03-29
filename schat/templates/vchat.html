@@ -1,0 +1,45 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<title>Log in</title>
+<meta http-equiv="Content-type" content="text/html; charset=utf-8" />
+
+<script src="http://static.opentok.com/v1.1/js/TB.min.js" type="text/javascript" charset="utf-8"></script>
+		<link href="http://static.opentok.com/opentok/assets/css/demos.css" type="text/css" rel="stylesheet" >
+        <script type="text/javascript" charset="utf-8">
+			TB.addEventListener("exception", exceptionHandler);
+				var session = TB.initSession("{{ session_id }}"); // Replace with your own session ID. See https://dashboard.tokbox.com/projects
+			session.addEventListener("sessionConnected", sessionConnectedHandler);
+			session.addEventListener("streamCreated", streamCreatedHandler);
+			session.connect("24175212", "{{ token_id }}"); // Replace with your API key and token. See https://dashboard.tokbox.com/projects
+			                                         // and https://dashboard.tokbox.com/projects
+
+			function sessionConnectedHandler(event) {
+				 subscribeToStreams(event.streams);
+				 session.publish();
+			}
+			
+			function streamCreatedHandler(event) {
+				subscribeToStreams(event.streams);
+			}
+			
+			function subscribeToStreams(streams) {
+				for (i = 0; i < streams.length; i++) {
+					var stream = streams[i];
+					if (stream.connection.connectionId != session.connection.connectionId) {
+						session.subscribe(stream);
+					}
+				}
+			}
+			
+			function exceptionHandler(event) {
+				alert("Exception: " + event.code + "::" + event.message);
+			}
+			
+
+		</script>
+</head>
+
+<body>
+</body>
+</html>

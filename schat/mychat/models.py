@@ -12,7 +12,17 @@ class ChatMessage(models.Model):
     is_read = models.BooleanField()
 
 class LastActive(models.Model):    
-    user   = models.OneToOneField(User)
+    user   = models.OneToOneField(User, primary_key = True)
     received_at = models.DateTimeField(auto_now = True)
     session = models.ForeignKey(Session)
+
+    def __str__(self):
+        return self.user.username
+
+class VideoSession(models.Model):
+    sender   = models.ForeignKey(User, related_name = 'sender_user1')
+    receiver = models.ForeignKey(User, related_name = 'receiver_user1')
+    session_id  = models.CharField(max_length = 255)
+    token_id    = models.TextField()
+    
     

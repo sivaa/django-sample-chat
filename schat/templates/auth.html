@@ -11,9 +11,9 @@ body{
 </style>
 </head>
 <body>
-{% csrf_token %}
+
 	{{ state }}
-	<form action="/login/" method="post">
+	<form action="/login/" method="post"> {% csrf_token %}
 		{% if next %}
 		<input type="hidden" name="next" value="{{ next }}" />
 		{% endif %}
@@ -24,5 +24,17 @@ body{
 
 		<input type="submit" value="Log In" />
 	</form>
+	
+	
+    <form action="/i18n/setlang/" method="post">{% csrf_token %}
+      <input name="next" type="hidden" value="/" />
+      <select name="language">
+        {% for lang in LANGUAGES %}
+          <option value="{{ lang.0 }}">{{ lang.1 }}</option>
+        {% endfor %}
+      </select>
+      <input type="submit" value="Go" />
+    </form>	
+	
 </body>
 </html>
